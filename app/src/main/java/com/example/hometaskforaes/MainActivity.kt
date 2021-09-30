@@ -9,6 +9,7 @@ import android.os.Handler
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.Toast
 import com.example.hometaskforaes.databinding.ActivityMainBinding
 import kotlinx.coroutines.*
 import java.io.File
@@ -46,16 +47,10 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnDecrypt.setOnClickListener {
             val intent = Intent(Intent.ACTION_GET_CONTENT);
-            intent.setDataAndType(
-                Uri.parse(
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).path
-                            + File.separator + "Encrypted files" + File.separator
-                ), "*/*"
-            );
+            intent.type = "*/*";
             startActivityForResult(intent, 2);
 
         }
-
 
 
     }
@@ -67,11 +62,20 @@ class MainActivity : AppCompatActivity() {
             val file = Utils.getFileFromGetContentUri(contentResolver, data.data!!);
             val mimeType = contentResolver.getType(data.data!!);
             val extension = mimeType!!.substring(mimeType.lastIndexOf('/') + 1);
-            val new_file = getTempEmptyFileForEncryptDecrypt(extension, "Encrypted files");
-            AESEncryptionAndDecryption.encrypt(key, file!!, new_file!!);
-            binding.txtEncryptedPath.visibility = View.VISIBLE;
-            binding.txtEncryptedPath.text = "Path to Encrypted file is DCIM/Encrypted files";
-            progressSimulation();
+            binding.progressBar.visibility = View.VISIBLE;
+            CoroutineScope(Dispatchers.IO).launch {
+                val new_file = getTempEmptyFileForEncryptDecrypt(extension, "Encrypted files");
+                val result = AESEncryptionAndDecryption.encrypt(key, file!!, new_file!!);
+                withContext(Dispatchers.Main) {
+                    val result_message = if (result) "Успешно..." else "Неуспешно..."
+                    Toast.makeText(this@MainActivity, result_message, Toast.LENGTH_SHORT).show()
+                    binding.progressBar.visibility = View.GONE
+                    if (result) binding.txtEncryptedPath.visibility = View.VISIBLE;
+                    binding.txtEncryptedPath.text =
+                        "Path to Encrypted file is DCIM/Encrypted files";
+                }
+            }
+
         }
 
         if (requestCode == 2 && resultCode == RESULT_OK && null != data) {
@@ -79,11 +83,20 @@ class MainActivity : AppCompatActivity() {
             val file = Utils.getFileFromGetContentUri(contentResolver, data.data!!);
             val mimeType = contentResolver.getType(data.data!!);
             val extension = mimeType!!.substring(mimeType.lastIndexOf('/') + 1);
-            val new_file = getTempEmptyFileForEncryptDecrypt(extension, "Decrypted files");
-            AESEncryptionAndDecryption.decrypt(key, file!!, new_file!!);
-            binding.txtDecryptedPath.visibility = View.VISIBLE;
-            binding.txtDecryptedPath.text = "Path to Decrypted files is : DCIM/Decrypted files";
-            progressSimulation();
+            binding.progressBar.visibility = View.VISIBLE;
+            CoroutineScope(Dispatchers.IO).launch {
+                val new_file = getTempEmptyFileForEncryptDecrypt(extension, "Decrypted files");
+                val result = AESEncryptionAndDecryption.decrypt(key, file!!, new_file!!);
+                withContext(Dispatchers.Main) {
+                    val result_message = if (result) "Успешно..." else "Неуспешно..."
+                    Toast.makeText(this@MainActivity, result_message, Toast.LENGTH_SHORT).show()
+                    binding.progressBar.visibility = View.GONE
+                    if (result) binding.txtDecryptedPath.visibility = View.VISIBLE;
+                    binding.txtDecryptedPath.text =
+                        "Path to Decrypted files is : DCIM/Decrypted files";
+                }
+
+            }
 
         }
         super.onActivityResult(requestCode, resultCode, data);
@@ -106,18 +119,6 @@ class MainActivity : AppCompatActivity() {
         val simpleDataFormat = SimpleDateFormat("HH:mm:ss")
 
         return File(file.absolutePath + File.separator + simpleDataFormat.format(Date()) + ".$extension");
-    }
-
-    private fun progressSimulation() {
-        binding.progressBar.visibility = View.VISIBLE;
-
-        CoroutineScope(Dispatchers.IO).launch {
-            delay(2000);
-            withContext(Dispatchers.Main) {
-                binding.progressBar.visibility = View.GONE;
-            }
-        }
-
     }
 
 

@@ -15,16 +15,16 @@ object AESEncryptionAndDecryption {
     private final val TRANS = "AES";
 
     @Throws(CryptoException::class)
-    fun encrypt(key: SecretKey, inputFile: File, outputFile: File) {
-        doCrypto(Cipher.ENCRYPT_MODE, key, inputFile, outputFile);
+    fun encrypt(key: SecretKey, inputFile: File, outputFile: File)  :Boolean{
+       return  doCrypto(Cipher.ENCRYPT_MODE, key, inputFile, outputFile);
     }
 
     @Throws(CryptoException::class)
-    fun decrypt(key: SecretKey, inputFile: File, outputFile: File) {
-        doCrypto(Cipher.DECRYPT_MODE, key, inputFile, outputFile);
+    fun decrypt(key: SecretKey, inputFile: File, outputFile: File) : Boolean{
+       return  doCrypto(Cipher.DECRYPT_MODE, key, inputFile, outputFile) ;
     }
 
-    fun doCrypto(cipherMode: Int, key: SecretKey, inputFile: File, outputFile: File) {
+    fun doCrypto(cipherMode: Int, key: SecretKey, inputFile: File, outputFile: File) : Boolean{
         try {
 
             val cipher = Cipher.getInstance(TRANS);
@@ -41,9 +41,10 @@ object AESEncryptionAndDecryption {
 
             fileInputStream.close();
             fileOutputStream.close();
+            return true;
 
         } catch (ex: Exception) {
-            Log.e(TAG, "doCrypto: Exception occurred", ex);
+            return false;
         }
     }
 
