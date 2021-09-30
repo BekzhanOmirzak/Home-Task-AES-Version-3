@@ -1,14 +1,11 @@
 package com.example.hometaskforaes
 
 import android.content.Intent
-import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
-import android.os.Handler
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.Toast
 import com.example.hometaskforaes.databinding.ActivityMainBinding
 import kotlinx.coroutines.*
@@ -17,9 +14,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
-import kotlin.coroutines.suspendCoroutine
 
 class MainActivity : AppCompatActivity() {
 
@@ -36,6 +30,8 @@ class MainActivity : AppCompatActivity() {
         val keyGenerator = KeyGenerator.getInstance("AES");
         keyGenerator.init(128);
         key = keyGenerator.generateKey();
+
+        Utils.permissionToReadAndCreateFile(this);
 
         binding.btnEnrypt.setOnClickListener {
 
@@ -56,7 +52,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        Utils.permissionToCreateFile(this);
+        Utils.permissionToReadAndCreateFile(this);
         if (requestCode == 1 && resultCode == RESULT_OK && null != data) {
 
             val file = Utils.getFileFromGetContentUri(contentResolver, data.data!!);

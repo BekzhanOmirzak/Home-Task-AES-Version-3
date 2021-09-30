@@ -24,7 +24,7 @@ object Utils {
         Manifest.permission.WRITE_EXTERNAL_STORAGE
     )
 
-    fun permissionToCreateFile(activity: Activity) {
+    fun permissionToReadAndCreateFile(activity: Activity) {
         val permission = ActivityCompat.checkSelfPermission(
             activity,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
