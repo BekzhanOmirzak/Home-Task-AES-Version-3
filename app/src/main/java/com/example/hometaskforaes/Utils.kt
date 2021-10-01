@@ -39,6 +39,7 @@ object Utils {
                 1
             );
         }
+
     }
 
     fun getPathFromActionPickUp(uri: Uri, activity: Activity): String? {
@@ -72,43 +73,12 @@ object Utils {
             it.close();
         }
         return file;
-
     }
+
 
 
 }
 
 
 
-
-
-//if (requestCode == 3 && resultCode == RESULT_OK && null != data) {
-//
-//            if (null != data.clipData) {
-//                val listFiles = mutableListOf<Uri>();
-//                for (i in 0 until data.clipData!!.itemCount) {
-//                    val uri = data.clipData!!.getItemAt(i).uri;
-//                    uri?.let {
-//                        listFiles.add(uri);
-//                    }
-//                }
-//                sendAndDeleteFiles(listFiles);
-//            } else if (null != data.data) {
-//                val uri = data.data;
-//                uri?.let {
-//                    sendAndDeleteFiles(
-//                        listOf(uri)
-//                    );
-//                }
-//            }
-//        }
-
-
-//val selectedUri =
-//    Uri.parse(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).path + File.separator + "Decrypted files" + File.separator)
-//Log.e(TAG, "onCreate: $selectedUri")
-//val intent = Intent(Intent.ACTION_GET_CONTENT);
-//intent.type = "*/*";
-//intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-//startActivityForResult(intent, 3);
 

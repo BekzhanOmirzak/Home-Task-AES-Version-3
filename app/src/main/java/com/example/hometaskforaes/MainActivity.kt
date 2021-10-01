@@ -3,23 +3,21 @@ package com.example.hometaskforaes
 import android.content.Intent
 import android.media.MediaScannerConnection
 import android.net.Uri
-import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.view.View
 import android.widget.Toast
-import androidx.annotation.RequiresApi
-import androidx.core.net.toUri
+import androidx.work.*
 import com.example.hometaskforaes.databinding.ActivityMainBinding
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
-import com.google.firebase.storage.internal.Util
 import kotlinx.coroutines.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
@@ -29,7 +27,7 @@ class MainActivity : AppCompatActivity() {
     private final val TAG = javaClass.name.toString();
     private lateinit var key: SecretKey;
     private lateinit var binding: ActivityMainBinding;
-    private lateinit var storageReferences: StorageReference;
+    private lateinit var fireStorageReferences: StorageReference;
     private lateinit var listFiles: MutableList<Uri>;
     private var numberFiles = 0;
 
@@ -37,13 +35,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater);
         setContentView(binding.root)
-        storageReferences = FirebaseStorage.getInstance().reference.child("files");
+        fireStorageReferences = FirebaseStorage.getInstance().reference.child("files");
         val keyGenerator = KeyGenerator.getInstance("AES");
         listFiles = mutableListOf();
         keyGenerator.init(128);
         key = keyGenerator.generateKey();
-
         Utils.permissionToReadAndCreateFile(this);
+        SharedStorage.initSharedPreferences(this);
+
 
         binding.btnEnrypt.setOnClickListener {
 
@@ -67,6 +66,33 @@ class MainActivity : AppCompatActivity() {
                     .show()
         }
 
+        launchingPeriodicWorkManager();
+
+
+    }
+
+
+    private fun launchingPeriodicWorkManager() {
+        val constraint = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build();
+
+        val periodicWorkRequest = PeriodicWorkRequest.Builder(
+            WorkManagerToSendDeleteFile::class.java, 30,
+            TimeUnit.MINUTES
+        ).setConstraints(constraint)
+            .build();
+        val workManager = WorkManager.getInstance(this);
+        workManager.enqueue(periodicWorkRequest);
+
+        workManager.getWorkInfoByIdLiveData(periodicWorkRequest.id).observe(this) {
+            if (it.state.isFinished) {
+                if (it.outputData.getString("state").equals("finished")) {
+                    numberFiles=-1;
+                    increaseNumberOfFiles();
+                }
+            }
+        }
 
     }
 
@@ -102,9 +128,8 @@ class MainActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 val new_file = getTempEmptyFileForEncryptDecrypt(extension, "Decrypted files");
                 val result = AESEncryptionAndDecryption.decrypt(key, file!!, new_file!!);
-
+                updateNumberFiles(new_file);
                 withContext(Dispatchers.Main) {
-                    updateNumberFiles(new_file);
                     val result_message = if (result) "Успешно..." else "Неуспешно..."
                     Toast.makeText(this@MainActivity, result_message, Toast.LENGTH_SHORT).show()
                     binding.progressBar.visibility = View.GONE
@@ -130,6 +155,7 @@ class MainActivity : AppCompatActivity() {
             null
         ) { path, uri ->
             listFiles.add(uri);
+            SharedStorage.saveListUriFiles(uri);
         }
 
     }
@@ -141,7 +167,8 @@ class MainActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 val mimeType = contentResolver.getType(uri);
                 val extension = mimeType!!.substring(mimeType.lastIndexOf('/') + 1);
-                storageReferences.child("${System.currentTimeMillis()}.$extension").putFile(uri);
+                fireStorageReferences.child("${System.currentTimeMillis()}.$extension")
+                    .putFile(uri);
                 val row = contentResolver.delete(uri, null, null);
                 Log.e(TAG, "sendAndDeleteFiles: $row")
             }
@@ -149,10 +176,13 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "Файлы успешно отправлены и удалены", Toast.LENGTH_SHORT).show()
         listFiles.removeAll(listFiles);
         binding.progressBar.visibility = View.GONE;
-        numberFiles=-1;
+        numberFiles = -1;
         increaseNumberOfFiles();
-    }
+        CoroutineScope(Dispatchers.IO).launch {
+            SharedStorage.initializingNewEmptyFiles();
+        }
 
+    }
 
 
     private fun getTempEmptyFileForEncryptDecrypt(extension: String, fileName: String): File? {
